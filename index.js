@@ -17,16 +17,18 @@ var noop = function(){};
  * @api public
  */
 
-function RedisStore(cache) {
-  var options = {};
-  if (typeof cache === 'function') {
-    options.cache = cache;
-  } else {
-    options = cache;
+var cache = null;
+
+function RedisStore(options) {
+  if (typeof options === 'function') {
+    cache = options;
+    options = {
+      cache: cache
+    };
   }
 
   if (options.cache) {
-    var cache = options.cache;
+    cache = options.cache;
     delete options.cache;
     cache.configure({ store: new RedisStore(options) });
     return RedisStore;
@@ -102,11 +104,15 @@ function RedisStore(cache) {
   }
 
   self.client.on('error', function (er) {
-    // self.emit('disconnect', er);
+    if (cache) {
+      cache.emit('disconnect', er);
+    }
   });
 
   self.client.on('connect', function () {
-    // self.emit('connect');
+    if (cache) {
+      cache.emit('connect');
+    }
   });
 }
 
