@@ -1,0 +1,16 @@
+{
+  "name": "autocache-redis",
+  "version": "1.0.0",
+  "description": "Redis backed autocache module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "cache",
+    "redis"
+  ],
+  "author": "Remy Sharp",
+  "license": "MIT",
+  "dependencies": {}
+}
