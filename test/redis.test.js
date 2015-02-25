@@ -1,17 +1,17 @@
 'use strict';
 /*global describe:true, it: true */
-var redis = require('redis').createClient();
-var cache = require('autocache');
-var store = require('../')({ client: redis, cache: cache });
 var test = require('tape');
 
 if (module.parent) {
   module.exports = runtests;
 } else {
-  runtests(cache);
+  runtests(require('autocache'));
 }
 
 function runtests(cache) {
+  var redis = require('redis').createClient();
+  var store = require('../')({ client: redis, cache: cache });
+
   test('redis sync cache', function (t) {
     t.plan(2);
 
