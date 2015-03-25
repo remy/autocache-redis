@@ -14,7 +14,7 @@
   "license": "MIT",
   "dependencies": {},
   "devDependencies": {
-    "autocache": "^0.4.0",
+    "autocache": "^0.6.0",
     "redis": "^0.12.1",
     "tap-bail": "0.0.0",
     "tap-spec": "^2.2.1",

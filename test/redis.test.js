@@ -78,7 +78,7 @@ function runtests(cache) {
     var n = 30;
 
     cache.define('number', function (done) {
-      done(n++);
+      done(null, n++);
     });
 
     t.test('initial check', function (t) {
