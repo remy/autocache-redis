@@ -58,13 +58,14 @@ function runtests(cache) {
       t.plan(3);
       cache.clear('number', function (error) {
         cache.get('number', function (error, result) {
+          console.log(error, result);
           t.ok(!error, 'cleared value and re-collects');
           t.ok(result === 41, 'supports closures: ' + result);
-        });
 
-        cache.destroy('number', function () {
-          cache.get('number', function (error, result) {
-            t.ok(error instanceof Error, 'destroyed definition');
+          cache.destroy('number', function () {
+            cache.get('number', function (error, result) {
+              t.ok(result === 41, 'number exists after definition is deleted: ' + result);
+            });
           });
         });
       });
