@@ -15,7 +15,7 @@
   "dependencies": {},
   "devDependencies": {
     "async": "^1.4.2",
-    "autocache": "^0.7.0",
+    "autocache": "^1.0.0",
     "debug": "^2.2.0",
     "es6-promise": "^3.0.2",
     "redis": "^0.12.1",
