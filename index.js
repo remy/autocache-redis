@@ -5,11 +5,11 @@
  * MIT Licensed
  */
 
+var debug = require('debug')('autocache:store');
 var redis = require('redis');
-var default_port = 6379;
-var default_host = '127.0.0.1';
-var noop = function(){};
-
+var port = 6379;
+var host = '127.0.0.1';
+var noop = function () {};
 /**
  * Initialize RedisStore with the given `options`.
  *
@@ -18,8 +18,15 @@ var noop = function(){};
  */
 
 var cache = null;
+var connected = false;
 
 function RedisStore(options) {
+  if (!(this instanceof RedisStore)) {
+    return new RedisStore(options);
+  }
+
+  debug('new store');
+
   if (typeof options === 'function') {
     cache = options;
     options = {
@@ -37,9 +44,7 @@ function RedisStore(options) {
   var self = this;
 
   options = options || {};
-  this.prefix = options.prefix == null
-    ? 'autocache:'
-    : options.prefix;
+  this.prefix = !options.prefix ? 'autocache:' : options.prefix;
 
   /* istanbul ignore next */
   if (options.url) {
@@ -64,18 +69,15 @@ function RedisStore(options) {
   // convert to redis connect params
   if (options.client) {
     this.client = options.client;
-  }
-  else if (options.socket) {
+  } else if (options.socket) {
     this.client = redis.createClient(options.socket, options);
-  }
-  else if (options.port || options.host) {
+  } else if (options.port || options.host) {
     this.client = redis.createClient(
-      options.port || default_port,
-      options.host || default_host,
+      options.port || port,
+      options.host || host,
       options
     );
-  }
-  else {
+  } else {
     this.client = redis.createClient(options);
   }
 
@@ -97,28 +99,47 @@ function RedisStore(options) {
 
     self.client.select(options.db);
     self.client.on('connect', function () {
-      self.client.send_anyways = true;
+      self.client.send_anyways = true; // jshint ignore:line
       self.client.select(options.db);
-      self.client.send_anyways = false;
+      self.client.send_anyways = false; // jshint ignore:line
     });
   }
 
   self.client.on('error', function (er) {
+    connected = false;
+    if (cache) {
+      cache.emit('disconnect', er);
+    }
+  });
+
+  self.client.on('disconnect', function (er) {
+    connected = false;
     if (cache) {
       cache.emit('disconnect', er);
     }
   });
 
   self.client.on('connect', function () {
+    connected = true;
+    debug('connected');
     if (cache) {
+      debug('emitted to cache');
       cache.emit('connect');
     }
   });
 }
 
+RedisStore.prototype.dock = function dock(c) {
+  cache = c;
+  if (connected) {
+    debug('emitted to cache');
+    cache.emit('connect');
+  }
+};
+
 RedisStore.prototype.toString = function () {
   return 'RedisStore()';
-}
+};
 
 /**
  * Attempt to fetch session by the given `sid`.
@@ -131,11 +152,21 @@ RedisStore.prototype.toString = function () {
 RedisStore.prototype.get = function (sid, fn) {
   var store = this;
   var psid = store.prefix + sid;
-  if (!fn) fn = noop;
+  if (!fn) {
+    fn = noop;
+  }
+
+  debug('-> get');
 
   store.client.get(psid, function (er, data) {
-    if (er) return fn(er);
-    if (!data) return fn();
+    debug('<- get');
+    if (er) {
+      return fn(er);
+    }
+
+    if (!data) {
+      return fn();
+    }
 
     var result;
     data = data.toString();
@@ -154,9 +185,10 @@ RedisStore.prototype.clear = function (fn) {
   if (!fn) {
     fn = noop;
   }
-  var errors = []
-  this.client.keys(this.prefix + '*', function(error, key) {
+  debug('-> clear');
+  this.client.keys(this.prefix + '*', function (error, key) {
     this.client.del(key, function (error) {
+      debug('<- clear');
       fn(error);
     });
   }.bind(this));
@@ -174,7 +206,9 @@ RedisStore.prototype.clear = function (fn) {
 RedisStore.prototype.set = function (sid, value, fn) {
   var store = this;
   var psid = store.prefix + sid;
-  if (!fn) fn = noop;
+  if (!fn) {
+    fn = noop;
+  }
 
   try {
     value = JSON.stringify(value);
@@ -183,8 +217,13 @@ RedisStore.prototype.set = function (sid, value, fn) {
     return fn(er);
   }
 
+  debug('-> set');
+
   store.client.set(psid, value, function (er) {
-    if (er) return fn(er);
+    debug('<- set');
+    if (er) {
+      return fn(er);
+    }
     fn.apply(null, arguments);
   });
 };
@@ -198,7 +237,11 @@ RedisStore.prototype.set = function (sid, value, fn) {
 
 RedisStore.prototype.destroy = function (sid, fn) {
   sid = this.prefix + sid;
-  this.client.del(sid, fn);
+  debug('-> clear one');
+  this.client.del(sid, function (error, result) {
+    debug('<- clear one');
+    if (fn) fn(error, !!result);
+  });
 };
 
 module.exports = RedisStore;
