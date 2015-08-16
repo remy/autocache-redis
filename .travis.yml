@@ -1,6 +1,6 @@
 sudo: false
 services:
-  - redis
+  - redis-server
 language: node_js
 cache:
   directories:
